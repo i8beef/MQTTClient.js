@@ -154,14 +154,13 @@ MQTTClient.decodeHeader = function (fixed_header) {
 MQTTClient.prototype.onError = function (callback) { this._errorCallback = callback; };
 MQTTClient.prototype.onLog = function (callback) { this._logCallback = callback; };
 MQTTClient.prototype.onDisconnect = function (callback) { this._disconnectCallback = callback; };
+MQTTClient.prototype.onConnect = function (callback) { this._connectionCallback = callback; };
 
 /**
  * Public interface
  */
-MQTTClient.prototype.connect = function (callback) {
+MQTTClient.prototype.connect = function () {
   var self = this;
-
-  this._connectionCallback = callback;
 
   // Setup socket
   this._connection = new sockets.tcp();
@@ -469,6 +468,7 @@ MQTTClient.prototype._startSession = function () {
   // Setup connect timeout
   this._connect_timeout_timer = setTimeout(function() {
                                   self._connect_timeout_timer = null;
+                                  self._onClose();
                                 }, this.options.connect_timeout * 1000);
 
   this._send(buffer);
@@ -643,7 +643,7 @@ MQTTClient.messageHandlers[MQTTClient.messageTypes.PUBLISH] = function (self, fi
   if (self._data_not_enough) {
     if (self._data_offset + chunk.length >= self._data_length) {
       self._data_not_enough = false;
-      self.messageHandlers[self.messageTypes.PUBLISH](self, fixed_header, MQTTClient.buildMessage(self._data_chunk, chunk));
+	  MQTTClient.messageHandlers[MQTTClient.messageTypes.PUBLISH](self, fixed_header, MQTTClient.buildMessage(self._data_chunk, chunk));
     } else {
       chunk.copy(self._data_chunk, self._data_offset, 0, chunk.length);
       self._data_offset += chunk.length;
